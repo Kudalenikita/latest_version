@@ -8,5 +8,5 @@ python-dotenv==1.0.1
 chromadb==0.4.24
 
 pandas
-numpy<2.0
+numpy
 
