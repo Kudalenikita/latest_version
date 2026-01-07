@@ -5,6 +5,9 @@ import sqlite3
 import os
 import pandas as pd  # ← THIS WAS MISSING – NOW FIXED
 
+
+
+
 DB_PATH = "data/sales.db"
 
 def init_db():

@@ -14,7 +14,7 @@ import time
 from datetime import datetime
 from dotenv import load_dotenv
 import chromadb
-from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+
 
 import sys, streamlit as st
 st.write("PYTHON:", sys.version)
@@ -229,6 +229,10 @@ st.markdown(
     "Close deals with confidence. AI that aligns promises with delivery.</p>",
     unsafe_allow_html=True
 )
+from db.db_utils import init_db, store_contract_to_db
+
+# Make sure data folder and tables exist
+init_db()
 
 # ==================== Persistent State ====================
 # Persists uploaded files metadata, chat history, and pitch deck state across reruns.
@@ -384,41 +388,58 @@ def build_executive_summary(customer_name: str, contract_df: pd.DataFrame, relea
 # Uses OpenAI's text-embedding-3-small for cost-efficient embeddings
 # All contract and release chunks are ingested with metadata for retrieval
 # (Chunks created in upload processing via ingest_to_vector_db calls)
-  
+  # ==================== Initialization ====================
 # ==================== Initialization ====================
+
+import os
+from dotenv import load_dotenv
+import streamlit as st
+import chromadb
+from openai import OpenAI
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+# ------------------ Load environment ------------------
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# Stop if API key is missing
 if not OPENAI_API_KEY:
+    st.error("Missing OPENAI_API_KEY in .env")
     st.stop()
 
-os.makedirs("data", exist_ok=True)
-init_db()
+# ------------------ Initialize local storage ------------------
+os.makedirs("data", exist_ok=True)  # Create data folder if missing
 
+# ------------------ ChromaDB vector client ------------------
 vector_client = chromadb.PersistentClient(path="data/chroma")
-embedding_func = OpenAIEmbeddingFunction(
-    api_key=OPENAI_API_KEY,
-    model_name="text-embedding-3-small"
-)
 
+# ------------------ Custom embedding function ------------------
+from chromadb.api.types import EmbeddingFunction
+
+class OpenAIEmbedding(EmbeddingFunction):
+    """Custom embedding function compatible with ChromaDB v0.4.24+"""
+    def __init__(self, model_name="text-embedding-3-small"):
+        self.model_name = model_name
+        self.client = OpenAI(api_key=OPENAI_API_KEY)
+
+    def __call__(self, input):
+        # input: list of strings
+        response = self.client.embeddings.create(
+            model=self.model_name,
+            input=input
+        )
+        return [item.embedding for item in response.data]
+
+# Initialize embedding function
+embedding_func = OpenAIEmbedding(model_name="text-embedding-3-small")
+
+# ------------------ OpenAI Chat Client ------------------
 model_client = OpenAIChatCompletionClient(
     model="gpt-4o-mini",
     api_key=OPENAI_API_KEY
 )
 
 
-embedding_func = OpenAIEmbeddingFunction(
-    api_key=OPENAI_API_KEY,
-    model_name="text-embedding-3-small"
-)
-
-
-
-
-
-
-
-model_client = OpenAIChatCompletionClient(
-    model="gpt-4o-mini",
-    api_key=OPENAI_API_KEY
-)
 
 #==================== AutoGen Agents ====================
 # Three lightweight agents:
