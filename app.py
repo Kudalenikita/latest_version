@@ -16,6 +16,10 @@ from dotenv import load_dotenv
 import chromadb
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 
+import sys, streamlit as st
+st.write("PYTHON:", sys.version)
+
+
 
 # AutoGen imports
 from autogen_ext.models.openai import OpenAIChatCompletionClient
