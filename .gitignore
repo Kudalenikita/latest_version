@@ -4,6 +4,7 @@ __pycache__/
 
 # Virtual environment
 venv/
+venv311/           # ← add your Python 3.11 venv
 .env
 
 # Streamlit
@@ -14,3 +15,10 @@ venv/
 
 # OS files
 .DS_Store
+
+# Local databases / Chroma
+data/chroma/
+data/sales.db
+data/persistent_state.pkl
+
+
